@@ -29,12 +29,12 @@ check_python() {
         PYTHON_VERSION=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
         MAJOR=$(echo "$PYTHON_VERSION" | cut -d. -f1)
         MINOR=$(echo "$PYTHON_VERSION" | cut -d. -f2)
-        
+
         if [ "$MAJOR" -ge 3 ] && [ "$MINOR" -ge 10 ]; then
             return 0
         fi
     fi
-    
+
     echo -e "${RED}✗ Python 3.10+ is required${NC}"
     echo -e "${YELLOW}  Install with: sudo apt install python3${NC}"
     return 1
@@ -44,7 +44,7 @@ check_uv() {
     if command -v uv &> /dev/null; then
         return 0
     fi
-    
+
     echo -e "${YELLOW}Installing uv package manager...${NC}"
     curl -LsSf https://astral.sh/uv/install.sh | sh
     export PATH="$HOME/.local/bin:$PATH"
@@ -69,7 +69,7 @@ main() {
     check_python || exit 1
     check_uv
     setup_venv
-    
+
     # If no arguments, show help
     if [ $# -eq 0 ]; then
         print_banner

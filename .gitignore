@@ -8,3 +8,6 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Pre-commit secrets baseline
+.secrets.baseline

@@ -5,7 +5,7 @@ description = "CLI tool for installing Linux packages using tuxmate's curated da
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
-    { name = "Gururagavendra", email = "guru@example.com" }
+    { name = "Gururagavendra", email = "guruvelu85@gmail.com" }
 ]
 keywords = ["linux", "package-manager", "cli", "tuxmate"]
 classifiers = [
