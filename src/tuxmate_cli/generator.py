@@ -37,43 +37,6 @@ NC='\\033[0m' # No Color
 BOLD='\\033[1m'
 """
 
-    # Progress bar function
-    PROGRESS_BAR = """
-progress_bar() {
-    local current=$1
-    local total=$2
-    local width=40
-    local percent=$((current * 100 / total))
-    local filled=$((width * current / total))
-    local empty=$((width - filled))
-    printf "\\r${CYAN}[${NC}"
-    printf "%${filled}s" | tr ' ' '█'
-    printf "%${empty}s" | tr ' ' '░'
-    printf "${CYAN}]${NC} ${percent}%% (${current}/${total})"
-}
-"""
-
-    # Retry function with exponential backoff
-    RETRY_FUNC = """
-retry_install() {
-    local cmd="$1"
-    local max_retries=3
-    local retry=0
-
-    while [ $retry -lt $max_retries ]; do
-        if eval "$cmd"; then
-            return 0
-        fi
-        retry=$((retry + 1))
-        if [ $retry -lt $max_retries ]; then
-            echo -e "${YELLOW}Retry $retry/$max_retries...${NC}"
-            sleep $((retry * 2))
-        fi
-    done
-    return 1
-}
-"""
-
     def __init__(self, distro: Optional[str] = None):
         """Initialize with optional distro override."""
         self.distro = distro or detect_distro()
@@ -185,8 +148,6 @@ retry_install() {
             "set -e",
             "",
             self.COLORS,
-            self.PROGRESS_BAR,
-            self.RETRY_FUNC,
             "",
             'echo -e "${BOLD}${CYAN}╔════════════════════════════════════════╗${NC}"',
             'echo -e "${BOLD}${CYAN}║      TuxMate CLI Package Installer     ║${NC}"',
@@ -340,9 +301,19 @@ retry_install() {
             "",
         ]
 
+        # Classic snaps that require --classic flag
+        classic_snaps = [
+            "code",
+            "sublime-text",
+            "slack",
+            "skype",
+            "pycharm-community",
+            "intellij-idea-community",
+        ]
+
         for pkg in packages:
-            if "--classic" in pkg:
-                lines.append(f"sudo snap install {pkg}")
+            if pkg in classic_snaps:
+                lines.append(f"sudo snap install {pkg} --classic")
             else:
                 lines.append(f"sudo snap install {pkg}")
 

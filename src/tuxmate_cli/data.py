@@ -22,7 +22,6 @@ TUXMATE_DATA_URL = (
 # Local cache path
 CACHE_DIR = Path.home() / ".cache" / "tuxmate-cli"
 CACHE_FILE = CACHE_DIR / "data.json"
-CACHE_EXPIRY_HOURS = 24
 
 
 @dataclass
@@ -53,8 +52,15 @@ DISTROS: dict[str, Distro] = {}
 class TuxmateDataFetcher:
     """Fetches and parses tuxmate's package database."""
 
-    def __init__(self, force_refresh: bool = False):
+    def __init__(
+        self,
+        force_refresh: bool = False,
+        use_cache: bool = False,
+        cache_expiry_hours: int = 24,
+    ):
         self.force_refresh = force_refresh
+        self.use_cache = use_cache
+        self.cache_expiry_hours = cache_expiry_hours
         self.apps: list[AppData] = []
         self.distros: dict[str, Distro] = {}
         self._load_data()
@@ -64,11 +70,12 @@ class TuxmateDataFetcher:
 
     def _load_data(self) -> None:
         """Load data from cache or fetch from GitHub."""
-        if not self.force_refresh and self._cache_valid():
+        if self.use_cache and not self.force_refresh and self._cache_valid():
             self._load_from_cache()
         else:
             self._fetch_and_parse()
-            self._save_to_cache()
+            if self.use_cache:  # Only save cache if caching is enabled
+                self._save_to_cache()
 
     def _cache_valid(self) -> bool:
         """Check if cache exists and is not expired."""
@@ -78,7 +85,7 @@ class TuxmateDataFetcher:
         import time
 
         cache_age = time.time() - CACHE_FILE.stat().st_mtime
-        return cache_age < (CACHE_EXPIRY_HOURS * 3600)
+        return cache_age < (self.cache_expiry_hours * 3600)
 
     def _load_from_cache(self) -> None:
         """Load apps and distros from local cache."""
@@ -105,8 +112,10 @@ class TuxmateDataFetcher:
                     for d in data.get("distros", [])
                 }
         except (json.JSONDecodeError, KeyError):
+            # Cache is corrupted, re-fetch and save only if caching is enabled
             self._fetch_and_parse()
-            self._save_to_cache()
+            if self.use_cache:
+                self._save_to_cache()
 
     def _fetch_and_parse(self) -> None:
         """Fetch data.ts from GitHub and parse it."""
@@ -116,9 +125,14 @@ class TuxmateDataFetcher:
             content = response.text
             self.apps, self.distros = self._parse_typescript(content)
         except requests.RequestException as e:
-            # Try to use cache even if expired
+            # Try to use cache if available, even if expired
             if CACHE_FILE.exists():
-                self._load_from_cache()
+                try:
+                    self._load_from_cache()
+                except Exception:
+                    raise RuntimeError(
+                        f"Failed to fetch tuxmate data and cache is invalid: {e}"
+                    )
             else:
                 raise RuntimeError(f"Failed to fetch tuxmate data: {e}")
 
@@ -162,8 +176,10 @@ class TuxmateDataFetcher:
                         name=d["name"],
                         install_prefix=d["installPrefix"],
                     )
-            except Exception:
-                pass  # Will use empty distros if parsing fails
+            except Exception as e:
+                import warnings
+
+                warnings.warn(f"Failed to parse distros from data.ts: {e}")
 
         # Extract apps array
         apps_match = re.search(
@@ -254,13 +270,9 @@ class TuxmateDataFetcher:
         """Get all unique categories."""
         return sorted(set(app.category for app in self.apps))
 
-    def get_available_apps(self, distro: str) -> list[AppData]:
-        """Get apps available for a specific distro."""
-        return [app for app in self.apps if distro in app.targets]
-
 
 def detect_distro() -> Optional[str]:
-    """Detect the current Linux distribution."""
+    """Detect the current system Linux distribution."""
     os_release = Path("/etc/os-release")
     if not os_release.exists():
         return None

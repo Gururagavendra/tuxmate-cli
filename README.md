@@ -7,38 +7,22 @@ A command-line interface for installing Linux packages using [tuxmate's](https:/
 - **150+ curated packages** - Access tuxmate's comprehensive package database
 - **Multi-distro support** - Ubuntu, Debian, Arch, Fedora, openSUSE, Nix, Flatpak, Snap
 - **Auto distro detection** - Automatically detects your Linux distribution
-- **Smart script generation** - Generates optimized install scripts with:
-  - AUR helper (yay) auto-installation for Arch
-  - Progress bars and colored output
-  - Retry logic with exponential backoff
-  - Parallel Flatpak installation
+- **Smart script generation** - AUR helper auto-install, progress bars, retry logic
 - **Always updated** - Syncs with tuxmate's latest package data
 
 ## Installation
 
-### Quick Install (Recommended)
-
 ```bash
-git clone https://github.com/Gururagavendra/tuxmate-cli.git
-cd tuxmate-cli
-chmod +x tuxmate-cli.sh
-./tuxmate-cli.sh --help
+pip install tuxmate-cli --upgrade
 ```
 
-### Using uv
+## Development
 
 ```bash
 git clone https://github.com/Gururagavendra/tuxmate-cli.git
 cd tuxmate-cli
 uv sync
 uv run tuxmate-cli --help
-```
-
-### Using pip
-
-```bash
-pip install tuxmate-cli
-tuxmate-cli --help
 ```
 
 ## Usage
@@ -107,21 +91,21 @@ tuxmate-cli categories
 tuxmate-cli distros
 ```
 
-## Supported Distributions
+## Why Python for Script Generation?
 
-| Distribution | Package Manager | Auto-Detected |
-|--------------|-----------------|---------------|
-| Ubuntu       | apt             | ✓             |
-| Debian       | apt             | ✓             |
-| Pop!_OS      | apt (as Ubuntu) | ✓             |
-| Linux Mint   | apt (as Ubuntu) | ✓             |
-| Arch Linux   | pacman + AUR    | ✓             |
-| Manjaro      | pacman + AUR    | ✓             |
-| Fedora       | dnf             | ✓             |
-| openSUSE     | zypper          | ✓             |
-| Nix          | nix-env         | ✓             |
-| Flatpak      | flatpak         | Manual        |
-| Snap         | snap            | Manual        |
+While [tuxmate](https://github.com/abusoww/tuxmate) is a web application (TypeScript/SvelteKit running in browsers), **tuxmate-cli** is designed specifically for Linux terminal usage. We implement the same production-grade script generation logic from tuxmate, but in Python because:
+
+- **Native to Linux** - Python is pre-installed on all Linux distributions
+- **No extra dependencies** - No Node.js or npm required
+- **CLI ecosystem** - Better integration with system tools and package managers
+- **Direct execution** - Scripts run immediately on the system, not just downloaded
+- **Automation-friendly** - Perfect for dotfile managers and provisioning tools
+
+For technical details, see [ARCHITECTURE.md](ARCHITECTURE.md).
+
+## Supported Distributions & Packages
+
+For the complete list of supported distributions and package catalog, visit [tuxmate.com](https://tuxmate.com/)
 
 ## Integration with TuxSync
 
@@ -131,21 +115,6 @@ tuxmate-cli is designed to work seamlessly with [TuxSync](https://github.com/Gur
 # TuxSync uses tuxmate-cli for package restoration
 tuxsync restore --source github:user/gist-id
 ```
-
-## Package Database
-
-tuxmate-cli automatically syncs with tuxmate's package database, which includes:
-
-- **Web Browsers**: Firefox, Chrome, Brave, LibreWolf, Zen, etc.
-- **Communication**: Discord, Telegram, Signal, Slack, Zoom
-- **Dev Languages**: Python, Node.js, Go, Rust, Ruby, PHP
-- **Dev Editors**: VS Code, Neovim, Helix, Zed, Cursor
-- **Dev Tools**: Git, Docker, Podman, kubectl, Vagrant
-- **Terminal**: Zsh, Fish, Alacritty, Kitty, WezTerm, Ghostty
-- **CLI Tools**: btop, htop, fzf, ripgrep, bat, eza
-- **Media**: VLC, mpv, Spotify, OBS, Kdenlive
-- **Gaming**: Steam, Lutris, Heroic, MangoHud
-- And many more...
 
 ## Contributing
 

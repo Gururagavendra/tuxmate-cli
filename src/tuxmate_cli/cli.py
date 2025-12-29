@@ -13,6 +13,7 @@ from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from typing import Optional
 
+from . import __version__
 from .data import TuxmateDataFetcher, detect_distro
 from .generator import ScriptGenerator
 
@@ -20,7 +21,7 @@ console = Console()
 
 
 @click.group()
-@click.version_option(version="0.1.0", prog_name="tuxmate-cli")
+@click.version_option(version=__version__, prog_name="tuxmate-cli")
 def cli():
     """TuxMate CLI - Install Linux packages with ease.
 
@@ -31,9 +32,13 @@ def cli():
 
 
 @cli.command()
-@click.option("--refresh", "-r", is_flag=True, help="Force refresh package database")
-def update(refresh: bool):
-    """Update the local package database from tuxmate."""
+def update():
+    """Update the local package database cache from tuxmate.
+
+    Note: By default, tuxmate-cli always fetches fresh data.
+    This command explicitly updates the cache for offline use.
+    Use the --cache flag with other commands to use cached data.
+    """
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
@@ -41,9 +46,12 @@ def update(refresh: bool):
     ) as progress:
         progress.add_task("Fetching latest package data from tuxmate...", total=None)
         try:
-            fetcher = TuxmateDataFetcher(force_refresh=True)
+            fetcher = TuxmateDataFetcher(force_refresh=True, use_cache=True)
             console.print(
-                f"[green]✓[/green] Updated! {len(fetcher.apps)} packages available"
+                f"[green]✓[/green] Cache updated! {len(fetcher.apps)} packages available"
+            )
+            console.print(
+                "[dim]Use --cache flag with commands to use cached data (faster, may be stale)[/dim]"
             )
         except Exception as e:
             console.print(f"[red]✗[/red] Failed to update: {e}")
@@ -53,10 +61,11 @@ def update(refresh: bool):
 @cli.command()
 @click.option("--category", "-c", help="Filter by category")
 @click.option("--distro", "-d", help="Filter by distro availability")
-def list(category: Optional[str], distro: Optional[str]):
+@click.option("--cache", is_flag=True, help="Use cached data (faster, may be stale)")
+def list(category: Optional[str], distro: Optional[str], cache: bool):
     """List available packages."""
     try:
-        fetcher = TuxmateDataFetcher()
+        fetcher = TuxmateDataFetcher(use_cache=cache)
     except Exception as e:
         console.print(f"[red]✗[/red] Failed to load data: {e}")
         sys.exit(1)
@@ -89,10 +98,11 @@ def list(category: Optional[str], distro: Optional[str]):
 
 
 @cli.command()
-def categories():
+@click.option("--cache", is_flag=True, help="Use cached data (faster, may be stale)")
+def categories(cache: bool):
     """List all package categories."""
     try:
-        fetcher = TuxmateDataFetcher()
+        fetcher = TuxmateDataFetcher(use_cache=cache)
     except Exception as e:
         console.print(f"[red]✗[/red] Failed to load data: {e}")
         sys.exit(1)
@@ -113,10 +123,11 @@ def categories():
 @cli.command()
 @click.argument("query")
 @click.option("--distro", "-d", help="Filter by distro availability")
-def search(query: str, distro: Optional[str]):
+@click.option("--cache", is_flag=True, help="Use cached data (faster, may be stale)")
+def search(query: str, distro: Optional[str], cache: bool):
     """Search for packages by name or description."""
     try:
-        fetcher = TuxmateDataFetcher()
+        fetcher = TuxmateDataFetcher(use_cache=cache)
     except Exception as e:
         console.print(f"[red]✗[/red] Failed to load data: {e}")
         sys.exit(1)
@@ -144,10 +155,11 @@ def search(query: str, distro: Optional[str]):
 
 @cli.command()
 @click.argument("app_id")
-def info(app_id: str):
+@click.option("--cache", is_flag=True, help="Use cached data (faster, may be stale)")
+def info(app_id: str, cache: bool):
     """Show detailed information about a package."""
     try:
-        fetcher = TuxmateDataFetcher()
+        fetcher = TuxmateDataFetcher(use_cache=cache)
     except Exception as e:
         console.print(f"[red]✗[/red] Failed to load data: {e}")
         sys.exit(1)
@@ -195,6 +207,7 @@ def info(app_id: str):
 @click.option("--snap", "-s", is_flag=True, help="Include Snap fallbacks")
 @click.option("--dry-run", "-n", is_flag=True, help="Show script without executing")
 @click.option("--output", "-o", type=click.Path(), help="Save script to file")
+@click.option("--cache", is_flag=True, help="Use cached data (faster, may be stale)")
 def install(
     packages: tuple,
     distro: Optional[str],
@@ -202,6 +215,7 @@ def install(
     snap: bool,
     dry_run: bool,
     output: Optional[str],
+    cache: bool,
 ):
     """Install packages.
 
@@ -216,7 +230,7 @@ def install(
         tuxmate-cli install firefox --distro arch --dry-run
     """
     try:
-        fetcher = TuxmateDataFetcher()
+        fetcher = TuxmateDataFetcher(use_cache=cache)
     except Exception as e:
         console.print(f"[red]✗[/red] Failed to load data: {e}")
         sys.exit(1)
@@ -240,8 +254,7 @@ def install(
 
     if not_found:
         console.print(f"[red]✗[/red] Packages not found: {', '.join(not_found)}")
-        if not apps_to_install:
-            sys.exit(1)
+        console.print("[yellow]⚠[/yellow] Continuing with found packages...")
 
     if not apps_to_install:
         console.print("[red]✗[/red] No valid packages to install")
@@ -296,7 +309,8 @@ def install(
 @cli.command()
 @click.argument("packages", nargs=-1, required=True)
 @click.option("--distro", "-d", help="Target distribution")
-def script(packages: tuple, distro: Optional[str]):
+@click.option("--cache", is_flag=True, help="Use cached data (faster, may be stale)")
+def script(packages: tuple, distro: Optional[str], cache: bool):
     """Generate installation script for packages (stdout).
 
     Useful for piping to bash or saving to a file.
@@ -308,7 +322,7 @@ def script(packages: tuple, distro: Optional[str]):
         tuxmate-cli script firefox neovim > install.sh
     """
     try:
-        fetcher = TuxmateDataFetcher()
+        fetcher = TuxmateDataFetcher(use_cache=cache)
         apps = [fetcher.get_app(p) for p in packages]
         apps = [a for a in apps if a]
 
@@ -319,14 +333,16 @@ def script(packages: tuple, distro: Optional[str]):
         result = generator.generate(apps)
 
         print(result.script)
-    except Exception:
+    except Exception as e:
+        console.print(f"[red]✗[/red] Failed to generate script: {e}")
         sys.exit(1)
 
 
 @cli.command()
 @click.argument("packages", nargs=-1, required=True)
 @click.option("--distro", "-d", help="Target distribution")
-def oneliner(packages: tuple, distro: Optional[str]):
+@click.option("--cache", is_flag=True, help="Use cached data (faster, may be stale)")
+def oneliner(packages: tuple, distro: Optional[str], cache: bool):
     """Generate a one-liner install command.
 
     Examples:
@@ -334,7 +350,7 @@ def oneliner(packages: tuple, distro: Optional[str]):
         tuxmate-cli oneliner firefox neovim git
     """
     try:
-        fetcher = TuxmateDataFetcher()
+        fetcher = TuxmateDataFetcher(use_cache=cache)
         apps = [fetcher.get_app(p) for p in packages]
         apps = [a for a in apps if a]
 
@@ -352,10 +368,11 @@ def oneliner(packages: tuple, distro: Optional[str]):
 
 
 @cli.command()
-def distros():
+@click.option("--cache", is_flag=True, help="Use cached data (faster, may be stale)")
+def distros(cache: bool):
     """List supported distributions."""
     try:
-        fetcher = TuxmateDataFetcher()
+        fetcher = TuxmateDataFetcher(use_cache=cache)
     except Exception as e:
         console.print(f"[red]✗[/red] Failed to load data: {e}")
         sys.exit(1)
