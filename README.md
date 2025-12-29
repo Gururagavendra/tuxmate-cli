@@ -107,6 +107,11 @@ tuxmate-cli categories
 tuxmate-cli distros
 ```
 
+## Requirements
+- **Python 3.10+** with pip
+- **[uv](https://docs.astral.sh/uv/)** (recommended) or standard pip/venv
+- **Git** - For cloning the repository
+
 ## Development
 
 ```bash
@@ -115,7 +120,12 @@ cd tuxmate-cli
 uv sync
 uv run tuxmate-cli --help
 ```
+## Security
 
+- **Trusted Source**: Package data is fetched from tuxmate.com
+- **Script Review**: Use `--dry-run` to review commands before execution
+- **Sudo Required**: Installations require root privileges - review scripts carefully
+- **Sandboxing**: JavaScript data parsing is sandboxed via dukpy
 
 For technical details, see [ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 
