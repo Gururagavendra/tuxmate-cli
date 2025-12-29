@@ -110,6 +110,9 @@ tuxmate-cli categories
 # List supported distros
 tuxmate-cli distros
 ```
+## Supported Distributions & Packages
+
+For the complete list of supported distributions and package catalog, visit [tuxmate.com](https://tuxmate.com/)
 
 ## Requirements
 - **Python 3.10+** with pip
@@ -124,6 +127,9 @@ cd tuxmate-cli
 uv sync
 uv run tuxmate-cli --help
 ```
+
+For technical details, see [ARCHITECTURE.md](./docs/ARCHITECTURE.md).
+
 ## Security
 
 - **Trusted Source**: Package data is fetched from tuxmate.com
@@ -131,22 +137,6 @@ uv run tuxmate-cli --help
 - **Sudo Required**: Installations require root privileges - review scripts carefully
 - **Sandboxing**: JavaScript data parsing is sandboxed via dukpy
 
-For technical details, see [ARCHITECTURE.md](./docs/ARCHITECTURE.md).
-
-## Supported Distributions & Packages
-
-For the complete list of supported distributions and package catalog, visit [tuxmate.com](https://tuxmate.com/)
-
-## Future Integration
-
-tuxmate-cli is designed to integrate with **TuxSync** (coming soon),
-a profile sync tool for Linux configurations. TuxSync will use tuxmate-cli
-to restore your application list across machines.
-
-```bash
-# TuxSync uses tuxmate-cli for package restoration
-tuxsync restore --source github:user/gist-id
-```
 
 ## Roadmap
 
@@ -202,6 +192,17 @@ tuxsync restore --source github:user/gist-id
 - [ ] Verify package manager availability before installation — **Should have**
 
 See [docs/TEST_PLAN.md](docs/TEST_PLAN.md) and [docs/PYTHON_IMPLEMENTATION.md](docs/PYTHON_IMPLEMENTATION.md) for technical details.
+
+## Future Integration
+
+tuxmate-cli is designed to integrate with **TuxSync** (coming soon),
+a profile sync tool for Linux configurations. TuxSync will use tuxmate-cli
+to restore your application list across machines.
+
+```bash
+# TuxSync uses tuxmate-cli for package restoration
+tuxsync restore --source github:user/gist-id
+```
 
 ## Contributing
 
