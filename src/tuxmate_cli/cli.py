@@ -13,7 +13,7 @@ from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from typing import Optional
 
-from .data import TuxmateDataFetcher, DISTROS, detect_distro
+from .data import TuxmateDataFetcher, detect_distro
 from .generator import ScriptGenerator
 
 console = Console()
@@ -163,7 +163,7 @@ def info(app_id: str):
     avail_table.add_column("Distro", style="cyan")
     avail_table.add_column("Package")
 
-    for distro_id, distro in DISTROS.items():
+    for distro_id, distro in fetcher.distros.items():
         if distro_id in app.targets:
             avail_table.add_row(distro.name, f"[green]{app.targets[distro_id]}[/green]")
         else:
@@ -354,6 +354,12 @@ def oneliner(packages: tuple, distro: Optional[str]):
 @cli.command()
 def distros():
     """List supported distributions."""
+    try:
+        fetcher = TuxmateDataFetcher()
+    except Exception as e:
+        console.print(f"[red]✗[/red] Failed to load data: {e}")
+        sys.exit(1)
+
     detected = detect_distro()
 
     table = Table(title="Supported Distributions")
@@ -362,7 +368,7 @@ def distros():
     table.add_column("Install Command")
     table.add_column("Status")
 
-    for distro_id, distro in DISTROS.items():
+    for distro_id, distro in fetcher.distros.items():
         status = "[green]← Detected[/green]" if distro_id == detected else ""
         table.add_row(distro_id, distro.name, distro.install_prefix, status)
 

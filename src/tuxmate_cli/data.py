@@ -2,7 +2,8 @@
 Data fetcher module - Downloads and parses tuxmate's package database.
 
 Fetches the latest data.ts from tuxmate's GitHub repository and parses it
-into Python data structures for use by the CLI.
+into Python data structures for use by the CLI. Uses dukpy (JavaScript interpreter)
+to evaluate the TypeScript array directly.
 """
 
 import json
@@ -11,6 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 import requests
+import dukpy
 
 # GitHub raw URL for tuxmate's data.ts
 TUXMATE_DATA_URL = (
@@ -19,7 +21,7 @@ TUXMATE_DATA_URL = (
 
 # Local cache path
 CACHE_DIR = Path.home() / ".cache" / "tuxmate-cli"
-CACHE_FILE = CACHE_DIR / "apps.json"
+CACHE_FILE = CACHE_DIR / "data.json"
 CACHE_EXPIRY_HOURS = 24
 
 
@@ -44,17 +46,8 @@ class Distro:
     install_prefix: str
 
 
-# Supported distributions with their install commands
-DISTROS: dict[str, Distro] = {
-    "ubuntu": Distro("ubuntu", "Ubuntu", "sudo apt install -y"),
-    "debian": Distro("debian", "Debian", "sudo apt install -y"),
-    "arch": Distro("arch", "Arch Linux", "sudo pacman -S --needed --noconfirm"),
-    "fedora": Distro("fedora", "Fedora", "sudo dnf install -y"),
-    "opensuse": Distro("opensuse", "openSUSE", "sudo zypper install -y"),
-    "nix": Distro("nix", "Nix", "nix-env -iA nixpkgs."),
-    "flatpak": Distro("flatpak", "Flatpak", "flatpak install flathub -y"),
-    "snap": Distro("snap", "Snap", "sudo snap install"),
-}
+# Global distros dict - populated by TuxmateDataFetcher
+DISTROS: dict[str, Distro] = {}
 
 
 class TuxmateDataFetcher:
@@ -63,7 +56,11 @@ class TuxmateDataFetcher:
     def __init__(self, force_refresh: bool = False):
         self.force_refresh = force_refresh
         self.apps: list[AppData] = []
+        self.distros: dict[str, Distro] = {}
         self._load_data()
+        # Update global DISTROS for backward compatibility
+        global DISTROS
+        DISTROS.update(self.distros)
 
     def _load_data(self) -> None:
         """Load data from cache or fetch from GitHub."""
@@ -84,7 +81,7 @@ class TuxmateDataFetcher:
         return cache_age < (CACHE_EXPIRY_HOURS * 3600)
 
     def _load_from_cache(self) -> None:
-        """Load apps from local cache."""
+        """Load apps and distros from local cache."""
         try:
             with open(CACHE_FILE, "r") as f:
                 data = json.load(f)
@@ -97,8 +94,16 @@ class TuxmateDataFetcher:
                         targets=app["targets"],
                         unavailable_reason=app.get("unavailable_reason"),
                     )
-                    for app in data
+                    for app in data.get("apps", [])
                 ]
+                self.distros = {
+                    d["id"]: Distro(
+                        id=d["id"],
+                        name=d["name"],
+                        install_prefix=d["install_prefix"],
+                    )
+                    for d in data.get("distros", [])
+                }
         except (json.JSONDecodeError, KeyError):
             self._fetch_and_parse()
             self._save_to_cache()
@@ -109,7 +114,7 @@ class TuxmateDataFetcher:
             response = requests.get(TUXMATE_DATA_URL, timeout=30)
             response.raise_for_status()
             content = response.text
-            self.apps = self._parse_typescript(content)
+            self.apps, self.distros = self._parse_typescript(content)
         except requests.RequestException as e:
             # Try to use cache even if expired
             if CACHE_FILE.exists():
@@ -117,92 +122,104 @@ class TuxmateDataFetcher:
             else:
                 raise RuntimeError(f"Failed to fetch tuxmate data: {e}")
 
-    def _parse_typescript(self, content: str) -> list[AppData]:
-        """Parse TypeScript data.ts file into Python objects."""
+    def _parse_typescript(
+        self, content: str
+    ) -> tuple[list[AppData], dict[str, Distro]]:
+        """Parse TypeScript data.ts file using JavaScript interpreter."""
         apps = []
+        distros = {}
 
-        # Find the apps array in the TypeScript file
+        # Build JavaScript code with helper functions from data.ts
+        js_code = """
+        // Define helper functions from data.ts
+        var icon = function(set, name, color) {
+            return 'https://api.iconify.design/' + set + '/' + name + '.svg' + (color ? '?color=' + encodeURIComponent(color) : '');
+        };
+        var si = function(name, color) { return icon('simple-icons', name, color); };
+        var lo = function(name) { return icon('logos', name); };
+        var dev = function(name) { return icon('devicon', name); };
+        var sk = function(name) { return icon('skill-icons', name); };
+        var vs = function(name) { return icon('vscode-icons', name); };
+        var mdi = function(name, color) { return icon('mdi', name, color); };
+        var def = si('linux', '#FCC624');
+        """
+
+        # Extract distros array
+        distros_match = re.search(
+            r"export\s+const\s+distros:\s*Distro\[\]\s*=\s*(\[[\s\S]*?\]);",
+            content,
+            re.DOTALL,
+        )
+        if distros_match:
+            distros_str = distros_match.group(1)
+            try:
+                parsed_distros = dukpy.evaljs(
+                    js_code + f"\nvar distros = {distros_str};\ndistros;"
+                )
+                for d in parsed_distros:
+                    distros[d["id"]] = Distro(
+                        id=d["id"],
+                        name=d["name"],
+                        install_prefix=d["installPrefix"],
+                    )
+            except Exception:
+                pass  # Will use empty distros if parsing fails
+
+        # Extract apps array
         apps_match = re.search(
-            r"export const apps:\s*AppData\[\]\s*=\s*\[(.*?)\];", content, re.DOTALL
+            r"export\s+const\s+apps:\s*AppData\[\]\s*=\s*(\[[\s\S]*?\]);",
+            content,
+            re.DOTALL,
         )
         if not apps_match:
-            return apps
+            return apps, distros
 
-        apps_content = apps_match.group(1)
+        array_str = apps_match.group(1)
 
-        # Split by app entries - look for { id: patterns
-        # Use a more flexible approach
-        app_blocks = re.split(r"},\s*(?=\{)", apps_content)
+        try:
+            parsed_apps = dukpy.evaljs(js_code + f"\nvar apps = {array_str};\napps;")
 
-        for block in app_blocks:
-            block = block.strip()
-            if not block:
-                continue
-
-            # Clean up the block
-            if not block.startswith("{"):
-                block = "{" + block
-            if not block.endswith("}"):
-                block = block + "}"
-
-            # Extract fields
-            id_match = re.search(r"id:\s*['\"]([^'\"]+)['\"]", block)
-            name_match = re.search(r"name:\s*['\"]([^'\"]+)['\"]", block)
-            desc_match = re.search(r"description:\s*['\"]([^'\"]+)['\"]", block)
-            cat_match = re.search(r"category:\s*['\"]([^'\"]+)['\"]", block)
-
-            if not all([id_match, name_match, desc_match, cat_match]):
-                continue
-
-            app_id = id_match.group(1)
-            name = name_match.group(1)
-            description = desc_match.group(1)
-            category = cat_match.group(1)
-
-            # Parse targets
-            targets = {}
-            targets_match = re.search(r"targets:\s*\{([^}]+)\}", block)
-            if targets_match:
-                targets_str = targets_match.group(1)
-                # Match key: 'value' or key: "value"
-                for match in re.finditer(r"(\w+):\s*['\"]([^'\"]+)['\"]", targets_str):
-                    distro, package = match.groups()
-                    targets[distro] = package
-
-            # Parse unavailableReason if present
-            unavail_match = re.search(
-                r"unavailableReason:\s*['\"]([^'\"]*)['\"]", block
-            )
-            unavail = unavail_match.group(1) if unavail_match else None
-
-            apps.append(
-                AppData(
-                    id=app_id,
-                    name=name,
-                    description=description,
-                    category=category,
-                    targets=targets,
-                    unavailable_reason=unavail if unavail else None,
+            for app in parsed_apps:
+                apps.append(
+                    AppData(
+                        id=app.get("id", ""),
+                        name=app.get("name", ""),
+                        description=app.get("description", ""),
+                        category=app.get("category", ""),
+                        targets=app.get("targets", {}),
+                        unavailable_reason=app.get("unavailableReason"),
+                    )
                 )
-            )
+        except Exception as e:
+            raise RuntimeError(f"Failed to parse data.ts: {e}")
 
-        return apps
+        return apps, distros
 
     def _save_to_cache(self) -> None:
-        """Save parsed apps to local cache."""
+        """Save parsed apps and distros to local cache."""
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-        data = [
-            {
-                "id": app.id,
-                "name": app.name,
-                "description": app.description,
-                "category": app.category,
-                "targets": app.targets,
-                "unavailable_reason": app.unavailable_reason,
-            }
-            for app in self.apps
-        ]
+        data = {
+            "apps": [
+                {
+                    "id": app.id,
+                    "name": app.name,
+                    "description": app.description,
+                    "category": app.category,
+                    "targets": app.targets,
+                    "unavailable_reason": app.unavailable_reason,
+                }
+                for app in self.apps
+            ],
+            "distros": [
+                {
+                    "id": d.id,
+                    "name": d.name,
+                    "install_prefix": d.install_prefix,
+                }
+                for d in self.distros.values()
+            ],
+        }
 
         with open(CACHE_FILE, "w") as f:
             json.dump(data, f, indent=2)
