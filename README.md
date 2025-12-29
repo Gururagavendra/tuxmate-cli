@@ -6,9 +6,13 @@
 [![PyPI](https://img.shields.io/pypi/v/tuxmate-cli?style=for-the-badge)](https://pypi.org/project/tuxmate-cli/)
 [![Python](https://img.shields.io/badge/python-3.10+-blue?style=for-the-badge&logo=python&logoColor=white)](https://pypi.org/project/tuxmate-cli/)
 [![License](https://img.shields.io/badge/license-GPL--3.0-yellow?style=for-the-badge)](LICENSE)
+[![Beta](https://img.shields.io/badge/status-beta-orange?style=for-the-badge)]()
 [![Maintained](https://img.shields.io/badge/Maintained-Yes-green?style=for-the-badge)]()
 
 </div>
+
+> [!WARNING]
+> **Beta Software**: This project is in active development. While functional, some features may be incomplete or change between versions. Use with caution and report any issues on GitHub.
 
 ## The CLI-Mate you need for your linux setup
 
