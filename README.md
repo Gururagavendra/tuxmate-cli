@@ -12,7 +12,7 @@
 </div>
 
 > [!WARNING]
-> **Beta Software**: This project is in active development. While functional, some features may be incomplete or change between versions. Use with caution and report any issues on GitHub.
+> **Beta Software**: This project is in active development. While functional, some features may be incomplete or change between versions. please report any issues on GitHub.
 
 ## The CLI-Mate you need for your linux setup
 
