@@ -116,16 +116,6 @@ tuxmate-cli categories
 tuxmate-cli distros
 ```
 
-## Why Python for Script Generation?
-
-While [tuxmate](https://github.com/abusoww/tuxmate) is a web application (TypeScript/SvelteKit running in browsers), **tuxmate-cli** is designed specifically for Linux terminal usage. We implement the same production-grade script generation logic from tuxmate, but in Python because:
-
-- **Native to Linux** - Python is pre-installed on all Linux distributions
-- **No extra dependencies** - No Node.js or npm required
-- **CLI ecosystem** - Better integration with system tools and package managers
-- **Direct execution** - Scripts run immediately on the system, not just downloaded
-- **Automation-friendly** - Perfect for dotfile managers and provisioning tools
-
 For technical details, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Supported Distributions & Packages
