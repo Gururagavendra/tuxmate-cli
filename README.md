@@ -1,14 +1,39 @@
-# TuxMate CLI
+<div align="center">
+  <h1>TuxMate CLI</h1>
+  <p><strong>THE TUXMATE COMPANION FOR YOUR TERMINAL</strong></p>
 
-A command-line interface for installing Linux packages using [tuxmate's](https://github.com/abusoww/tuxmate) curated package database.
+![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
+[![PyPI](https://img.shields.io/pypi/v/tuxmate-cli?style=for-the-badge)](https://pypi.org/project/tuxmate-cli/)
+[![Python](https://img.shields.io/badge/python-3.10+-blue?style=for-the-badge&logo=python&logoColor=white)](https://pypi.org/project/tuxmate-cli/)
+[![License](https://img.shields.io/badge/license-GPL--3.0-yellow?style=for-the-badge)](LICENSE)
+[![Maintained](https://img.shields.io/badge/Maintained-Yes-green?style=for-the-badge)]()
+
+</div>
+
+## The only CLI-Mate you need for your linux setup
+
+A command-line interface for installing Linux packages using [tuxmate's](https://github.com/abusoww/tuxmate) curated package database. Perfect for setting up a fresh Linux system or bulk-installing your favorite apps.
 
 ## Features
 
-- **150+ curated packages** - Access tuxmate's comprehensive package database
-- **Multi-distro support** - Ubuntu, Debian, Arch, Fedora, openSUSE, Nix, Flatpak, Snap
-- **Auto distro detection** - Automatically detects your Linux distribution
-- **Smart script generation** - AUR helper auto-install, progress bars, retry logic
+```bash
+# List and search packages
+tuxmate-cli list
+tuxmate-cli search firefox
+
+# Install packages directly
+tuxmate-cli install firefox neovim git
+
+# Generate install scripts
+tuxmate-cli oneliner vscode spotify
+```
+
+- **150+ curated packages** across browsers, dev tools, terminals, media, and more
+- **Multi-distro support** - Ubuntu, Debian, Arch (AUR), Fedora, openSUSE, Nix, Flatpak, Snap
+- **Smart script generation** - Distro-specific scripts with error handling
 - **Always updated** - Syncs with tuxmate's latest package data
+
+See [Usage](#usage) section below for detailed commands.
 
 ## Installation
 
@@ -122,7 +147,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+GPL-3.0 License - see [LICENSE](LICENSE) for details.
 
 ## Credits
 
