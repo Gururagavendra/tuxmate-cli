@@ -18,20 +18,63 @@ PACKAGE_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._+-]*$")
 
 
 def validate_package_name(name: str) -> bool:
-    """Validate package name to prevent command injection."""
-    if not name or len(name) > 256:
+    """
+    Validate package name to prevent command injection.
+
+    Requirements:
+    - Length: 1-256 characters
+    - Must start with alphanumeric
+    - Can contain: alphanumeric, dot, dash, underscore, plus
+    - No special shell characters: $ ` \\ ; & | < > ( ) { } [ ] * ? !
+    """
+    if not name:
         return False
-    return bool(PACKAGE_NAME_PATTERN.match(name))
+    if len(name) < 1 or len(name) > 256:
+        return False
+    if not PACKAGE_NAME_PATTERN.match(name):
+        return False
+    # Additional checks for suspicious patterns
+    dangerous_chars = [
+        "$",
+        "`",
+        "\\",
+        ";",
+        "&",
+        "|",
+        "<",
+        ">",
+        "(",
+        ")",
+        "{",
+        "}",
+        "[",
+        "]",
+        "*",
+        "?",
+        "!",
+    ]
+    if any(char in name for char in dangerous_chars):
+        return False
+    return True
 
 
 def sanitize_packages(packages: list[str]) -> list[str]:
-    """Validate and sanitize package names. Raises ValueError on invalid input."""
+    """
+    Validate and sanitize package names. Raises ValueError on invalid input.
+
+    Security measures:
+    - Validates against injection patterns
+    - Checks length constraints (1-256 chars)
+    - Escapes with shlex.quote for safe shell execution
+    """
     sanitized = []
     for pkg in packages:
         if not validate_package_name(pkg):
             raise ValueError(
                 f"Invalid package name: '{pkg}'. "
-                "Package names must be alphanumeric with only .-_+ allowed."
+                "Package names must be 1-256 characters, start with alphanumeric, "
+                "and contain only: letters, numbers, dots, dashes, underscores, plus signs. "
+                "Special shell characters are not allowed."
             )
         # Additional safety: shell escape even valid names
         sanitized.append(shlex.quote(pkg))
@@ -177,6 +220,13 @@ BOLD='\\033[1m'
             "",
             self.COLORS,
             "",
+            "# Security: Prevent execution as root user",
+            '[ "$EUID" -eq 0 ] && {',
+            '    echo -e "${RED}${BOLD}Error: Do not run this script as root!${NC}"',
+            '    echo -e "${YELLOW}Run as a regular user. The script will use sudo when needed.${NC}"',
+            "    exit 1",
+            "}",
+            "",
             'echo -e "${BOLD}${CYAN}╔════════════════════════════════════════╗${NC}"',
             'echo -e "${BOLD}${CYAN}║      TuxMate CLI Package Installer     ║${NC}"',
             f'echo -e "${{BOLD}}${{CYAN}}║  Distro: {self.distro.capitalize():^28} ║${{NC}}"',
@@ -239,44 +289,188 @@ BOLD='\\033[1m'
         if self.distro in ["ubuntu", "debian"]:
             lines.extend(
                 [
+                    "# Wait for apt lock to be released",
+                    "while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || fuser /var/lib/dpkg/lock >/dev/null 2>&1; do",
+                    '    echo -e "${YELLOW}Waiting for package manager lock...${NC}"',
+                    "    sleep 2",
+                    "done",
+                    "",
                     "# Update package lists",
                     "sudo apt update",
                     "",
-                    "# Install packages",
-                    f"sudo apt install -y {' '.join(safe_packages)}",
+                    "# Function to check if package is installed",
+                    "is_installed() {",
+                    '    dpkg -l "$1" 2>/dev/null | grep -q "^ii"',
+                    "}",
+                    "",
+                    "# Install packages (skip if already installed)",
+                    'echo -e "${CYAN}Checking and installing packages...${NC}"',
+                    "INSTALLED=0",
+                    "SKIPPED=0",
+                    "for pkg in " + " ".join(safe_packages) + "; do",
+                    "    if is_installed $pkg; then",
+                    '        echo -e "${DIM}○${NC} $pkg ${DIM}(already installed)${NC}"',
+                    "        SKIPPED=$((SKIPPED + 1))",
+                    "    else",
+                    '        echo -e "${BLUE}→${NC} Installing $pkg..."',
+                    "        if sudo apt install -y $pkg >/dev/null 2>&1; then",
+                    '            echo -e "${GREEN}✓${NC} $pkg installed"',
+                    "            INSTALLED=$((INSTALLED + 1))",
+                    "        else",
+                    '            echo -e "${RED}✗${NC} $pkg failed"',
+                    "        fi",
+                    "    fi",
+                    "done",
+                    "",
+                    '[ $SKIPPED -gt 0 ] && echo -e "${DIM}Skipped $SKIPPED already installed packages${NC}"',
                 ]
             )
 
         elif self.distro == "arch":
             lines.extend(
                 [
+                    "# Wait for pacman lock to be released",
+                    "while [ -f /var/lib/pacman/db.lck ]; do",
+                    '    echo -e "${YELLOW}Waiting for pacman lock...${NC}"',
+                    "    sleep 2",
+                    "done",
+                    "",
                     "# Update package database",
                     "sudo pacman -Sy",
                     "",
-                    "# Install packages",
-                    f"sudo pacman -S --needed --noconfirm {' '.join(safe_packages)}",
+                    "# Function to check if package is installed",
+                    "is_installed() {",
+                    '    pacman -Qi "$1" &>/dev/null',
+                    "}",
+                    "",
+                    "# Install packages (skip if already installed)",
+                    'echo -e "${CYAN}Checking and installing packages...${NC}"',
+                    "INSTALLED=0",
+                    "SKIPPED=0",
+                    "for pkg in " + " ".join(safe_packages) + "; do",
+                    "    if is_installed $pkg; then",
+                    '        echo -e "${DIM}○${NC} $pkg ${DIM}(already installed)${NC}"',
+                    "        SKIPPED=$((SKIPPED + 1))",
+                    "    else",
+                    '        echo -e "${BLUE}→${NC} Installing $pkg..."',
+                    "        if sudo pacman -S --needed --noconfirm $pkg >/dev/null 2>&1; then",
+                    '            echo -e "${GREEN}✓${NC} $pkg installed"',
+                    "            INSTALLED=$((INSTALLED + 1))",
+                    "        else",
+                    '            echo -e "${RED}✗${NC} $pkg failed"',
+                    "        fi",
+                    "    fi",
+                    "done",
+                    "",
+                    '[ $SKIPPED -gt 0 ] && echo -e "${DIM}Skipped $SKIPPED already installed packages${NC}"',
                 ]
             )
 
         elif self.distro == "fedora":
             lines.extend(
                 [
-                    "# Install packages",
-                    f"sudo dnf install -y {' '.join(safe_packages)}",
+                    "# Function to check if package is installed",
+                    "is_installed() {",
+                    '    rpm -q "$1" &>/dev/null',
+                    "}",
+                    "",
+                    "# Install packages (skip if already installed)",
+                    'echo -e "${CYAN}Checking and installing packages...${NC}"',
+                    "INSTALLED=0",
+                    "SKIPPED=0",
+                    "for pkg in " + " ".join(safe_packages) + "; do",
+                    "    if is_installed $pkg; then",
+                    '        echo -e "${DIM}○${NC} $pkg ${DIM}(already installed)${NC}"',
+                    "        SKIPPED=$((SKIPPED + 1))",
+                    "    else",
+                    '        echo -e "${BLUE}→${NC} Installing $pkg..."',
+                    "        if sudo dnf install -y $pkg >/dev/null 2>&1; then",
+                    '            echo -e "${GREEN}✓${NC} $pkg installed"',
+                    "            INSTALLED=$((INSTALLED + 1))",
+                    "        else",
+                    '            echo -e "${RED}✗${NC} $pkg failed"',
+                    "        fi",
+                    "    fi",
+                    "done",
+                    "",
+                    '[ $SKIPPED -gt 0 ] && echo -e "${DIM}Skipped $SKIPPED already installed packages${NC}"',
                 ]
             )
 
         elif self.distro == "opensuse":
             lines.extend(
                 [
-                    "# Install packages",
-                    f"sudo zypper install -y {' '.join(safe_packages)}",
+                    "# Wait for zypper lock to be released",
+                    "while [ -f /var/run/zypp.pid ]; do",
+                    '    echo -e "${YELLOW}Waiting for zypper lock...${NC}"',
+                    "    sleep 2",
+                    "done",
+                    "",
+                    "# Function to check if package is installed",
+                    "is_installed() {",
+                    '    rpm -q "$1" &>/dev/null',
+                    "}",
+                    "",
+                    "# Install packages (skip if already installed)",
+                    'echo -e "${CYAN}Checking and installing packages...${NC}"',
+                    "INSTALLED=0",
+                    "SKIPPED=0",
+                    "for pkg in " + " ".join(safe_packages) + "; do",
+                    "    if is_installed $pkg; then",
+                    '        echo -e "${DIM}○${NC} $pkg ${DIM}(already installed)${NC}"',
+                    "        SKIPPED=$((SKIPPED + 1))",
+                    "    else",
+                    '        echo -e "${BLUE}→${NC} Installing $pkg..."',
+                    "        if sudo zypper install -y $pkg >/dev/null 2>&1; then",
+                    '            echo -e "${GREEN}✓${NC} $pkg installed"',
+                    "            INSTALLED=$((INSTALLED + 1))",
+                    "        else",
+                    '            echo -e "${RED}✗${NC} $pkg failed"',
+                    "        fi",
+                    "    fi",
+                    "done",
+                    "",
+                    '[ $SKIPPED -gt 0 ] && echo -e "${DIM}Skipped $SKIPPED already installed packages${NC}"',
                 ]
             )
 
         elif self.distro == "nix":
+            lines.extend(
+                [
+                    "# Function to check if package is installed",
+                    "is_installed() {",
+                    '    nix-env -q 2>/dev/null | grep -q "$1"',
+                    "}",
+                    "",
+                    "# Install packages (skip if already installed)",
+                    'echo -e "${CYAN}Checking and installing packages...${NC}"',
+                    "INSTALLED=0",
+                    "SKIPPED=0",
+                ]
+            )
             for pkg in safe_packages:
-                lines.append(f"nix-env -iA nixpkgs.{pkg}")
+                lines.extend(
+                    [
+                        f"if is_installed {pkg}; then",
+                        f'    echo -e "${{DIM}}○${{NC}} {pkg} ${{DIM}}(already installed)${{NC}}"',
+                        "    SKIPPED=$((SKIPPED + 1))",
+                        "else",
+                        f'    echo -e "${{BLUE}}→${{NC}} Installing {pkg}..."',
+                        f"    if nix-env -iA nixpkgs.{pkg} >/dev/null 2>&1; then",
+                        f'        echo -e "${{GREEN}}✓${{NC}} {pkg} installed"',
+                        "        INSTALLED=$((INSTALLED + 1))",
+                        "    else",
+                        f'        echo -e "${{RED}}✗${{NC}} {pkg} failed"',
+                        "    fi",
+                        "fi",
+                    ]
+                )
+            lines.extend(
+                [
+                    "",
+                    '[ $SKIPPED -gt 0 ] && echo -e "${DIM}Skipped $SKIPPED already installed packages${NC}"',
+                ]
+            )
 
         lines.append("")
         return lines
@@ -312,22 +506,43 @@ BOLD='\\033[1m'
         lines = [
             'echo -e "${BLUE}Installing Flatpak packages...${NC}"',
             "",
+            "# Check if flatpak is available",
+            "if ! command -v flatpak &> /dev/null; then",
+            '    echo -e "${RED}Error: flatpak is not installed${NC}"',
+            '    echo -e "${YELLOW}Please install flatpak first for your distribution${NC}"',
+            "    exit 1",
+            "fi",
+            "",
             "# Ensure Flathub is added",
             "flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo",
             "",
-            "# Install packages (parallel)",
+            "# Function to check if flatpak is installed",
+            "is_installed() {",
+            "    flatpak list --app 2>/dev/null | awk '{print $2}' | grep -Fxq \"$1\"",
+            "}",
+            "",
+            "# Install packages with already-installed detection",
+            'echo -e "${CYAN}Checking and installing packages...${NC}"',
+            "INSTALLED=0",
+            "SKIPPED=0",
+            "for pkg in " + " ".join(safe_packages) + "; do",
+            "    if is_installed $pkg; then",
+            '        echo -e "${DIM}○${NC} $pkg ${DIM}(already installed)${NC}"',
+            "        SKIPPED=$((SKIPPED + 1))",
+            "    else",
+            '        echo -e "${BLUE}→${NC} Installing $pkg..."',
+            "        if flatpak install flathub -y $pkg >/dev/null 2>&1; then",
+            '            echo -e "${GREEN}✓${NC} $pkg installed"',
+            "            INSTALLED=$((INSTALLED + 1))",
+            "        else",
+            '            echo -e "${RED}✗${NC} $pkg failed"',
+            "        fi",
+            "    fi",
+            "done",
+            "",
+            '[ $SKIPPED -gt 0 ] && echo -e "${DIM}Skipped $SKIPPED already installed packages${NC}"',
+            "",
         ]
-
-        # Install in parallel batches
-        for pkg in safe_packages:
-            lines.append(f"flatpak install flathub -y {pkg} &")
-
-        lines.extend(
-            [
-                "wait",
-                "",
-            ]
-        )
 
         return lines
 
@@ -339,6 +554,23 @@ BOLD='\\033[1m'
         lines = [
             'echo -e "${CYAN}Installing Snap packages...${NC}"',
             "",
+            "# Check if snap is available",
+            "if ! command -v snap &> /dev/null; then",
+            '    echo -e "${RED}Error: snap is not installed${NC}"',
+            '    echo -e "${YELLOW}Please install snapd first for your distribution${NC}"',
+            "    exit 1",
+            "fi",
+            "",
+            "# Function to check if snap is installed",
+            "is_installed() {",
+            "    local snap_name=$(echo \"$1\" | awk '{print $1}')",
+            '    snap list 2>/dev/null | grep -q "^$snap_name "',
+            "}",
+            "",
+            "# Install packages with already-installed detection",
+            'echo -e "${CYAN}Checking and installing packages...${NC}"',
+            "INSTALLED=0",
+            "SKIPPED=0",
         ]
 
         # Classic snaps that require --classic flag
@@ -353,10 +585,30 @@ BOLD='\\033[1m'
 
         for i, pkg in enumerate(safe_packages):
             # Use original package name for classic check, sanitized for command
-            if packages[i] in classic_snaps:
-                lines.append(f"sudo snap install {pkg} --classic")
-            else:
-                lines.append(f"sudo snap install {pkg}")
+            classic_flag = " --classic" if packages[i] in classic_snaps else ""
+            lines.extend(
+                [
+                    f"if is_installed {pkg}; then",
+                    f'    echo -e "${{DIM}}○${{NC}} {pkg} ${{DIM}}(already installed)${{NC}}"',
+                    "    SKIPPED=$((SKIPPED + 1))",
+                    "else",
+                    f'    echo -e "${{BLUE}}→${{NC}} Installing {pkg}..."',
+                    f"    if sudo snap install {pkg}{classic_flag} >/dev/null 2>&1; then",
+                    f'        echo -e "${{GREEN}}✓${{NC}} {pkg} installed"',
+                    "        INSTALLED=$((INSTALLED + 1))",
+                    "    else",
+                    f'        echo -e "${{RED}}✗${{NC}} {pkg} failed"',
+                    "    fi",
+                    "fi",
+                ]
+            )
+
+        lines.extend(
+            [
+                "",
+                '[ $SKIPPED -gt 0 ] && echo -e "${DIM}Skipped $SKIPPED already installed packages${NC}"',
+            ]
+        )
 
         lines.append("")
         return lines

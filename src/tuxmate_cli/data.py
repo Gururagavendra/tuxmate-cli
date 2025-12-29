@@ -8,6 +8,7 @@ to evaluate the TypeScript array directly.
 
 import json
 import re
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -82,13 +83,16 @@ class TuxmateDataFetcher:
         if not CACHE_FILE.exists():
             return False
 
-        import time
-
         cache_age = time.time() - CACHE_FILE.stat().st_mtime
         return cache_age < (self.cache_expiry_hours * 3600)
 
-    def _load_from_cache(self) -> None:
-        """Load apps and distros from local cache."""
+    def _load_from_cache(self, allow_fetch: bool = True) -> None:
+        """Load apps and distros from local cache.
+
+        Args:
+            allow_fetch: If True, fetch from network if cache is corrupted.
+                        If False, raise an exception instead to prevent recursion.
+        """
         try:
             with open(CACHE_FILE, "r") as f:
                 data = json.load(f)
@@ -111,30 +115,52 @@ class TuxmateDataFetcher:
                     )
                     for d in data.get("distros", [])
                 }
-        except (json.JSONDecodeError, KeyError):
-            # Cache is corrupted, re-fetch and save only if caching is enabled
-            self._fetch_and_parse()
-            if self.use_cache:
-                self._save_to_cache()
+        except (json.JSONDecodeError, KeyError) as e:
+            # Cache is corrupted
+            if allow_fetch:
+                # Re-fetch and save only if caching is enabled
+                self._fetch_and_parse()
+                if self.use_cache:
+                    self._save_to_cache()
+            else:
+                # Don't fetch to prevent infinite recursion
+                raise RuntimeError(f"Cache is corrupted and fetch is disabled: {e}")
 
     def _fetch_and_parse(self) -> None:
-        """Fetch data.ts from GitHub and parse it."""
-        try:
-            response = requests.get(TUXMATE_DATA_URL, timeout=30)
-            response.raise_for_status()
-            content = response.text
-            self.apps, self.distros = self._parse_typescript(content)
-        except requests.RequestException as e:
-            # Try to use cache if available, even if expired
-            if CACHE_FILE.exists():
-                try:
-                    self._load_from_cache()
-                except Exception:
-                    raise RuntimeError(
-                        f"Failed to fetch tuxmate data and cache is invalid: {e}"
-                    )
-            else:
-                raise RuntimeError(f"Failed to fetch tuxmate data: {e}")
+        """Fetch data.ts from GitHub and parse it with retry logic."""
+        max_attempts = 3
+        initial_delay = 5
+
+        for attempt in range(1, max_attempts + 1):
+            try:
+                response = requests.get(TUXMATE_DATA_URL, timeout=30)
+                response.raise_for_status()
+                content = response.text
+                self.apps, self.distros = self._parse_typescript(content)
+                return  # Success, exit the function
+            except requests.RequestException as e:
+                if attempt < max_attempts:
+                    # Exponential backoff: 5s, 10s, 20s
+                    delay = initial_delay * (2 ** (attempt - 1))
+                    print(f"Network error (attempt {attempt}/{max_attempts}): {e}")
+                    print(f"Retrying in {delay}s...")
+                    time.sleep(delay)
+                else:
+                    # Final attempt failed, try cache as fallback
+                    if CACHE_FILE.exists():
+                        try:
+                            print("Using cached data as fallback...")
+                            # Use allow_fetch=False to prevent infinite recursion
+                            self._load_from_cache(allow_fetch=False)
+                            return
+                        except Exception:
+                            raise RuntimeError(
+                                f"Failed to fetch tuxmate data after {max_attempts} attempts and cache is invalid: {e}"
+                            )
+                    else:
+                        raise RuntimeError(
+                            f"Failed to fetch tuxmate data after {max_attempts} attempts: {e}"
+                        )
 
     def _parse_typescript(
         self, content: str

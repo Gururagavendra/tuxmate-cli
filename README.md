@@ -161,14 +161,14 @@ For technical details, see [ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 > Features are prioritized using [MoSCoW method](https://en.wikipedia.org/wiki/MoSCoW_method) (Must have, Should have, Could have, Won't have). Priorities are flexible and may change based on user feedback.
 
 **High Priority:**
-- [ ] Already-installed detection (skip packages on system) — **Must have**
-- [ ] Network retry logic with exponential backoff (3 retries, 5s delay) — **Must have**
+- [x] Already-installed detection (skip packages on system) — **Must have**
+- [x] Network retry logic with exponential backoff (3 retries, 5s delay) — **Must have**
 - [ ] Progress bars with ETA calculations (percentage, timing, remaining) — **Should have**
 - [ ] Migrate to PythonMonkey (modern SpiderMonkey-based JS engine) — **Should have**
 - [ ] Comprehensive test coverage (unit + integration tests) — **Should have**
 
 **Script Generation Features (from tuxmate):**
-- [ ] Package manager lock detection & wait loop (apt, pacman, zypper) — **Must have**
+- [x] Package manager lock detection & wait loop (apt, pacman, zypper) — **Must have**
 - [ ] Real-time progress indicators with package count (1/10, 2/10...) — **Should have**
 - [ ] Per-package install timing (shows seconds for each package) — **Should have**
 - [ ] Graceful interrupt handling with Ctrl+C traps — **Should have**
@@ -177,8 +177,8 @@ For technical details, see [ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 - [ ] Colored output with status symbols (✓ ✗ ! ○) — **Could have**
 
 **Error Handling & Recovery:**
-- [ ] Network error detection with smart retry logic — **Must have**
-- [ ] Safe command execution (no eval, proper escaping) — **Must have**
+- [x] Network error detection with smart retry logic — **Must have**
+- [x] Safe command execution (no eval, proper escaping) — **Must have**
 - [ ] Automatic dependency fixing (Ubuntu/Debian `apt-get --fix-broken`) — **Should have**
 - [ ] Detailed error messages (package not found, signature issues, network errors) — **Should have**
 - [ ] RPM Fusion auto-enable for Fedora multimedia packages — **Could have**
@@ -186,10 +186,10 @@ For technical details, see [ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 
 **Security & Robustness:**
 - [x] Shell string escaping (basic implementation with shlex.quote)
-- [ ] Advanced shell escaping (escape $, `, \, !, like tuxmate's escapeShellString) — **Must have**
-- [ ] Validate package names before script generation — **Must have**
-- [ ] Check for root user and prevent execution as root — **Should have**
-- [ ] Verify package manager availability before installation — **Should have**
+- [x] Advanced shell escaping (escape $, `, \, !, like tuxmate's escapeShellString) — **Must have**
+- [x] Validate package names before script generation — **Must have**
+- [x] Check for root user and prevent execution as root — **Should have**
+- [x] Verify package manager availability before installation — **Should have**
 
 See [docs/TEST_PLAN.md](docs/TEST_PLAN.md) and [docs/PYTHON_IMPLEMENTATION.md](docs/PYTHON_IMPLEMENTATION.md) for technical details.
 
