@@ -10,7 +10,7 @@
 
 </div>
 
-## The only CLI-Mate you need for your linux setup
+## The CLI-Mate you need for your linux setup
 
 A command-line interface for installing Linux packages using [tuxmate's](https://github.com/abusoww/tuxmate) curated package database. Perfect for setting up a fresh Linux system or bulk-installing your favorite apps.
 
