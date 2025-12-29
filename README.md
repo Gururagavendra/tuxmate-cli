@@ -116,7 +116,7 @@ tuxmate-cli categories
 tuxmate-cli distros
 ```
 
-For technical details, see [ARCHITECTURE.md](ARCHITECTURE.md).
+For technical details, see [ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 
 ## Supported Distributions & Packages
 
