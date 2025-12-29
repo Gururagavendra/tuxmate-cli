@@ -5,9 +5,37 @@ Creates shell scripts based on tuxmate's script generation logic with support
 for all major package managers and smart features like AUR handling.
 """
 
+import re
+import shlex
 from dataclasses import dataclass
 from typing import Optional
 from .data import AppData, DISTROS, detect_distro
+
+
+# Security: Package name validation pattern
+# Allows alphanumeric, dash, underscore, dot, plus, colon (for arch groups)
+PACKAGE_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._+-]*$")
+
+
+def validate_package_name(name: str) -> bool:
+    """Validate package name to prevent command injection."""
+    if not name or len(name) > 256:
+        return False
+    return bool(PACKAGE_NAME_PATTERN.match(name))
+
+
+def sanitize_packages(packages: list[str]) -> list[str]:
+    """Validate and sanitize package names. Raises ValueError on invalid input."""
+    sanitized = []
+    for pkg in packages:
+        if not validate_package_name(pkg):
+            raise ValueError(
+                f"Invalid package name: '{pkg}'. "
+                "Package names must be alphanumeric with only .-_+ allowed."
+            )
+        # Additional safety: shell escape even valid names
+        sanitized.append(shlex.quote(pkg))
+    return sanitized
 
 
 @dataclass
@@ -205,6 +233,9 @@ BOLD='\\033[1m'
         if not distro:
             return lines
 
+        # Security: Validate and sanitize all package names
+        safe_packages = sanitize_packages(packages)
+
         if self.distro in ["ubuntu", "debian"]:
             lines.extend(
                 [
@@ -212,7 +243,7 @@ BOLD='\\033[1m'
                     "sudo apt update",
                     "",
                     "# Install packages",
-                    f"sudo apt install -y {' '.join(packages)}",
+                    f"sudo apt install -y {' '.join(safe_packages)}",
                 ]
             )
 
@@ -223,7 +254,7 @@ BOLD='\\033[1m'
                     "sudo pacman -Sy",
                     "",
                     "# Install packages",
-                    f"sudo pacman -S --needed --noconfirm {' '.join(packages)}",
+                    f"sudo pacman -S --needed --noconfirm {' '.join(safe_packages)}",
                 ]
             )
 
@@ -231,7 +262,7 @@ BOLD='\\033[1m'
             lines.extend(
                 [
                     "# Install packages",
-                    f"sudo dnf install -y {' '.join(packages)}",
+                    f"sudo dnf install -y {' '.join(safe_packages)}",
                 ]
             )
 
@@ -239,12 +270,12 @@ BOLD='\\033[1m'
             lines.extend(
                 [
                     "# Install packages",
-                    f"sudo zypper install -y {' '.join(packages)}",
+                    f"sudo zypper install -y {' '.join(safe_packages)}",
                 ]
             )
 
         elif self.distro == "nix":
-            for pkg in packages:
+            for pkg in safe_packages:
                 lines.append(f"nix-env -iA nixpkgs.{pkg}")
 
         lines.append("")
@@ -252,6 +283,9 @@ BOLD='\\033[1m'
 
     def _generate_aur_install(self, packages: list[str]) -> list[str]:
         """Generate AUR installation commands using yay."""
+        # Security: Validate and sanitize all package names
+        safe_packages = sanitize_packages(packages)
+
         return [
             'echo -e "${YELLOW}Installing AUR packages...${NC}"',
             "",
@@ -266,12 +300,15 @@ BOLD='\\033[1m'
             "fi",
             "",
             "# Install AUR packages",
-            f"yay -S --needed --noconfirm {' '.join(packages)}",
+            f"yay -S --needed --noconfirm {' '.join(safe_packages)}",
             "",
         ]
 
     def _generate_flatpak_install(self, packages: list[str]) -> list[str]:
         """Generate Flatpak installation commands."""
+        # Security: Validate and sanitize all package names
+        safe_packages = sanitize_packages(packages)
+
         lines = [
             'echo -e "${BLUE}Installing Flatpak packages...${NC}"',
             "",
@@ -282,7 +319,7 @@ BOLD='\\033[1m'
         ]
 
         # Install in parallel batches
-        for pkg in packages:
+        for pkg in safe_packages:
             lines.append(f"flatpak install flathub -y {pkg} &")
 
         lines.extend(
@@ -296,6 +333,9 @@ BOLD='\\033[1m'
 
     def _generate_snap_install(self, packages: list[str]) -> list[str]:
         """Generate Snap installation commands."""
+        # Security: Validate and sanitize all package names
+        safe_packages = sanitize_packages(packages)
+
         lines = [
             'echo -e "${CYAN}Installing Snap packages...${NC}"',
             "",
@@ -311,8 +351,9 @@ BOLD='\\033[1m'
             "intellij-idea-community",
         ]
 
-        for pkg in packages:
-            if pkg in classic_snaps:
+        for i, pkg in enumerate(safe_packages):
+            # Use original package name for classic check, sanitized for command
+            if packages[i] in classic_snaps:
                 lines.append(f"sudo snap install {pkg} --classic")
             else:
                 lines.append(f"sudo snap install {pkg}")
@@ -334,15 +375,18 @@ BOLD='\\033[1m'
         if not distro:
             return "# Unknown distribution"
 
-        if self.distro in ["ubuntu", "debian"]:
-            return f"sudo apt update && sudo apt install -y {' '.join(packages)}"
-        elif self.distro == "arch":
-            return f"sudo pacman -Syu --needed --noconfirm {' '.join(packages)}"
-        elif self.distro == "fedora":
-            return f"sudo dnf install -y {' '.join(packages)}"
-        elif self.distro == "opensuse":
-            return f"sudo zypper install -y {' '.join(packages)}"
-        elif self.distro == "nix":
-            return f"nix-env -iA {' '.join(f'nixpkgs.{p}' for p in packages)}"
+        # Security: Validate and sanitize all package names
+        safe_packages = sanitize_packages(packages)
 
-        return f"# Install: {' '.join(packages)}"
+        if self.distro in ["ubuntu", "debian"]:
+            return f"sudo apt update && sudo apt install -y {' '.join(safe_packages)}"
+        elif self.distro == "arch":
+            return f"sudo pacman -Syu --needed --noconfirm {' '.join(safe_packages)}"
+        elif self.distro == "fedora":
+            return f"sudo dnf install -y {' '.join(safe_packages)}"
+        elif self.distro == "opensuse":
+            return f"sudo zypper install -y {' '.join(safe_packages)}"
+        elif self.distro == "nix":
+            return f"nix-env -iA {' '.join(f'nixpkgs.{p}' for p in safe_packages)}"
+
+        return f"# Install: {' '.join(safe_packages)}"

@@ -5,6 +5,7 @@ Provides commands for searching, listing, and installing packages
 using tuxmate's package database.
 """
 
+import re
 import sys
 import click
 from rich.console import Console
@@ -18,6 +19,21 @@ from .data import TuxmateDataFetcher, detect_distro
 from .generator import ScriptGenerator
 
 console = Console()
+
+# Security: Input validation pattern for package/app IDs
+VALID_ID_PATTERN = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]*$")
+
+
+def validate_input(value: str, field_name: str = "input") -> str:
+    """Validate user input to prevent injection attacks."""
+    if not value or len(value) > 256:
+        raise click.BadParameter(f"{field_name} must be 1-256 characters")
+    if not VALID_ID_PATTERN.match(value):
+        raise click.BadParameter(
+            f"{field_name} contains invalid characters. "
+            "Only alphanumeric, dash, underscore, and dot allowed."
+        )
+    return value
 
 
 @click.group()
@@ -158,6 +174,13 @@ def search(query: str, distro: Optional[str], cache: bool):
 @click.option("--cache", is_flag=True, help="Use cached data (faster, may be stale)")
 def info(app_id: str, cache: bool):
     """Show detailed information about a package."""
+    # Security: Validate input
+    try:
+        app_id = validate_input(app_id, "app_id")
+    except click.BadParameter as e:
+        console.print(f"[red]✗[/red] {e.message}")
+        sys.exit(1)
+
     try:
         fetcher = TuxmateDataFetcher(use_cache=cache)
     except Exception as e:
@@ -235,11 +258,20 @@ def install(
         console.print(f"[red]✗[/red] Failed to load data: {e}")
         sys.exit(1)
 
+    # Security: Validate all package inputs
+    validated_packages = []
+    for pkg in packages:
+        try:
+            validated_packages.append(validate_input(pkg, "package"))
+        except click.BadParameter as e:
+            console.print(f"[red]✗[/red] Invalid package '{pkg}': {e.message}")
+            sys.exit(1)
+
     # Find requested apps
     apps_to_install = []
     not_found = []
 
-    for pkg in packages:
+    for pkg in validated_packages:
         app = fetcher.get_app(pkg)
         if app:
             apps_to_install.append(app)
