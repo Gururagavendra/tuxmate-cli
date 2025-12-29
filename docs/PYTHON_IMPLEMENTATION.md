@@ -26,34 +26,9 @@ Both implementations achieve the same goal: generate distro-specific installatio
 
 ## Script Generation Approach
 
-We follow tuxmate's patterns from [`src/lib/scripts/`](https://github.com/abusoww/tuxmate/tree/main/src/lib/scripts):
+We follow tuxmate's patterns from [`src/lib/scripts/`](https://github.com/abusoww/tuxmate/tree/main/src/lib/scripts).
 
-### Implemented Features
-
-1. **Per-Distro Generators** - Modular script generation for each package manager
-2. **AUR Automation** - Auto-install yay helper on Arch
-3. **Package Categorization** - Native, AUR, Flatpak, Snap detection
-4. **Parallel Installation** - Concurrent Flatpak package installation with `&` and `wait`
-5. **User-Friendly Output** - Colored output and banners
-6. **Basic Error Handling** - Script exits on errors with `set -e`
-7. **Snap Classic Flag** - Automatic `--classic` for VS Code, Sublime, etc.
-8. **Package Manager Commands** - apt, pacman, dnf, zypper, nix-env support
-
-### Pending Features (From Tuxmate)
-
-These production-grade features from tuxmate are documented for future implementation:
-
-1. **Progress Tracking** - Real-time progress bars with ETA calculations
-2. **Network Resilience** - Exponential backoff retry logic for network failures  
-3. **Package Manager Locks** - Wait for apt/pacman locks instead of failing
-4. **Already-Installed Detection** - Skip packages already on the system
-5. **Error Recovery** - Automatic dependency fixing (Ubuntu/Debian)
-6. **Per-Package Timing** - Show install duration for each package
-7. **Shell Escaping Security** - Prevent injection attacks from package names
-8. **Graceful Interrupt Handling** - Trap Ctrl+C for clean exit
-9. **Detailed Error Messages** - Package not found, signature issues, etc.
-10. **RPM Fusion Auto-Enable** - For Fedora multimedia packages
-11. **Success/Failed/Skipped Tracking** - Comprehensive summary reports
+> **Note:** For a complete list of implemented and planned features, see the [Roadmap section in README.md](../README.md#roadmap).
 
 ## Code Comparison
 
