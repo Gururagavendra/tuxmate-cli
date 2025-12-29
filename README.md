@@ -56,8 +56,6 @@ tuxmate-cli script firefox neovim git docker > setup.sh
 
 ## Real-World Examples
 
-## Real-World Examples
-
 ### Fresh Ubuntu Install
 ```bash
 # Developer setup
