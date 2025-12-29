@@ -148,6 +148,20 @@ to restore your application list across machines.
 tuxsync restore --source github:user/gist-id
 ```
 
+## Roadmap
+
+### Planned Improvements
+
+- [ ] **Migrate to PythonMonkey** - Replace dukpy with modern SpiderMonkey-based JS engine
+- [ ] **Already-installed detection** - Skip packages that are already on the system
+- [ ] **Network retry logic** - Automatic retries with exponential backoff
+- [ ] **Progress indicators** - Show download/install progress for large operations
+- [ ] **Test coverage** - Comprehensive test suite (unit + integration)
+- [ ] **Error recovery** - Automatic dependency resolution and conflict handling
+- [ ] **Package manager locks** - Detect and handle locked package managers gracefully
+
+See [docs/TEST_PLAN.md](docs/TEST_PLAN.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for technical details.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
