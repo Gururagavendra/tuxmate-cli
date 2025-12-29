@@ -152,18 +152,18 @@ tuxsync restore --source github:user/gist-id
 
 ### ✅ Implemented Features
 
-✓ Multi-distro support (Ubuntu, Debian, Arch, Fedora, openSUSE, Nix)
-✓ Flatpak & Snap universal package support
-✓ 150+ applications across 15 categories
-✓ Smart AUR detection & yay auto-installation
-✓ Package categorization (native, AUR, Flatpak, Snap)
-✓ Parallel Flatpak installation
-✓ Colored terminal output with rich formatting
-✓ Basic error handling with `set -e`
-✓ Snap classic flag auto-detection
-✓ Script generation (one-liner, full script, dry-run)
-✓ Offline cache support (24h expiry)
-✓ Package search & filtering
+✓ Multi-distro support (Ubuntu, Debian, Arch, Fedora, openSUSE, Nix)  
+✓ Flatpak & Snap universal package support  
+✓ 150+ applications across 15 categories  
+✓ Smart AUR detection & yay auto-installation  
+✓ Package categorization (native, AUR, Flatpak, Snap)  
+✓ Parallel Flatpak installation  
+✓ Colored terminal output with rich formatting  
+✓ Basic error handling with `set -e`  
+✓ Snap classic flag auto-detection  
+✓ Script generation (one-liner, full script, dry-run)  
+✓ Offline cache support (24h expiry)  
+✓ Package search & filtering  
 ✓ Input validation & security fixes
 
 ### 🔮 Planned Features
@@ -171,17 +171,33 @@ tuxsync restore --source github:user/gist-id
 **High Priority:**
 - [ ] Migrate to PythonMonkey (modern SpiderMonkey-based JS engine)
 - [ ] Already-installed detection (skip packages on system)
-- [ ] Network retry logic with exponential backoff
-- [ ] Progress indicators with ETA calculations
-- [ ] Comprehensive test coverage (unit + integration)
+- [ ] Network retry logic with exponential backoff (3 retries, 5s delay)
+- [ ] Progress bars with ETA calculations (percentage, timing, remaining)
+- [ ] Comprehensive test coverage (unit + integration tests)
 
-**Production Features:**
-- [ ] Error recovery & automatic dependency fixing
-- [ ] Package manager lock detection & handling
-- [ ] Per-package timing & detailed summaries
-- [ ] RPM Fusion auto-enable (Fedora multimedia)
-- [ ] Graceful interrupt handling (Ctrl+C traps)
-- [ ] Success/Failed/Skipped tracking with reports
+**Script Generation Features (from tuxmate):**
+- [ ] Real-time progress indicators with package count (1/10, 2/10...)
+- [ ] Per-package install timing (shows seconds for each package)
+- [ ] Adaptive ETA calculation (learns average time as it installs)
+- [ ] Package manager lock detection & wait loop (apt, pacman, zypper)
+- [ ] Graceful interrupt handling with Ctrl+C traps
+- [ ] Colored output with status symbols (✓ ✗ ! ○)
+- [ ] Success/Failed/Skipped tracking with final summary report
+
+**Error Handling & Recovery:**
+- [ ] Automatic dependency fixing (Ubuntu/Debian `apt-get --fix-broken`)
+- [ ] Detailed error messages (package not found, signature issues, network errors)
+- [ ] Network error detection with smart retry logic
+- [ ] Safe command execution (no eval, proper escaping)
+- [ ] RPM Fusion auto-enable for Fedora multimedia packages
+- [ ] Parallel Flatpak installation (3+ packages installed concurrently)
+
+**Security & Robustness:**
+- [x] Shell string escaping (basic implementation with shlex.quote)
+- [ ] Advanced shell escaping (escape $, `, \, !, like tuxmate's escapeShellString)
+- [ ] Validate package names before script generation
+- [ ] Check for root user and prevent execution as root
+- [ ] Verify package manager availability before installation
 
 See [docs/TEST_PLAN.md](docs/TEST_PLAN.md) and [docs/PYTHON_IMPLEMENTATION.md](docs/PYTHON_IMPLEMENTATION.md) for technical details.
 

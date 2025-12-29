@@ -56,3 +56,14 @@ result = dukpy.evaljs("""
 ```
 
 This approach ensures tuxmate-cli stays synchronized with tuxmate's data format without manual intervention.
+
+## Future Migration
+
+While dukpy works well for our current needs, we plan to migrate to **PythonMonkey** in a future release:
+
+- **Modern JS engine**: Uses SpiderMonkey (Mozilla Firefox's JavaScript engine)
+- **Active maintenance**: Regular updates and security patches (last updated 2024)
+- **Better security**: More robust sandboxing and modern JS feature support
+- **API compatibility**: Similar `eval()` API makes migration straightforward
+
+The migration is planned as a low-priority improvement since dukpy is functioning correctly. See the [Roadmap in README.md](../README.md#roadmap) for current status.
