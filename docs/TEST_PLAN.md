@@ -1,4 +1,4 @@
-# TuxMate CLI - Comprehensive Test Plan
+# [WIP] TuxMate CLI - Comprehensive Test Plan
 
 ## Overview
 This document outlines all test scenarios for tuxmate-cli to ensure production-grade quality. Tests are organized from high-level integration tests to low-level unit tests.
