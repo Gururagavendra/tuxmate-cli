@@ -150,17 +150,40 @@ tuxsync restore --source github:user/gist-id
 
 ## Roadmap
 
-### Planned Improvements
+### ✅ Implemented Features
 
-- [ ] **Migrate to PythonMonkey** - Replace dukpy with modern SpiderMonkey-based JS engine
-- [ ] **Already-installed detection** - Skip packages that are already on the system
-- [ ] **Network retry logic** - Automatic retries with exponential backoff
-- [ ] **Progress indicators** - Show download/install progress for large operations
-- [ ] **Test coverage** - Comprehensive test suite (unit + integration)
-- [ ] **Error recovery** - Automatic dependency resolution and conflict handling
-- [ ] **Package manager locks** - Detect and handle locked package managers gracefully
+✓ Multi-distro support (Ubuntu, Debian, Arch, Fedora, openSUSE, Nix)
+✓ Flatpak & Snap universal package support
+✓ 150+ applications across 15 categories
+✓ Smart AUR detection & yay auto-installation
+✓ Package categorization (native, AUR, Flatpak, Snap)
+✓ Parallel Flatpak installation
+✓ Colored terminal output with rich formatting
+✓ Basic error handling with `set -e`
+✓ Snap classic flag auto-detection
+✓ Script generation (one-liner, full script, dry-run)
+✓ Offline cache support (24h expiry)
+✓ Package search & filtering
+✓ Input validation & security fixes
 
-See [docs/TEST_PLAN.md](docs/TEST_PLAN.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for technical details.
+### 🔮 Planned Features
+
+**High Priority:**
+- [ ] Migrate to PythonMonkey (modern SpiderMonkey-based JS engine)
+- [ ] Already-installed detection (skip packages on system)
+- [ ] Network retry logic with exponential backoff
+- [ ] Progress indicators with ETA calculations
+- [ ] Comprehensive test coverage (unit + integration)
+
+**Production Features:**
+- [ ] Error recovery & automatic dependency fixing
+- [ ] Package manager lock detection & handling
+- [ ] Per-package timing & detailed summaries
+- [ ] RPM Fusion auto-enable (Fedora multimedia)
+- [ ] Graceful interrupt handling (Ctrl+C traps)
+- [ ] Success/Failed/Skipped tracking with reports
+
+See [docs/TEST_PLAN.md](docs/TEST_PLAN.md) and [docs/PYTHON_IMPLEMENTATION.md](docs/PYTHON_IMPLEMENTATION.md) for technical details.
 
 ## Contributing
 
