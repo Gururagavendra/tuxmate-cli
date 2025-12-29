@@ -1,43 +1,92 @@
 <div align="center">
   <h1>TuxMate CLI</h1>
-  <p><strong>THE TUXMATE COMPANION FOR YOUR TERMINAL</strong></p>
+  <p><strong>Install Linux packages across distros with one command</strong></p>
 
 ![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
 [![PyPI](https://img.shields.io/pypi/v/tuxmate-cli?style=for-the-badge)](https://pypi.org/project/tuxmate-cli/)
 [![Python](https://img.shields.io/badge/python-3.10+-blue?style=for-the-badge&logo=python&logoColor=white)](https://pypi.org/project/tuxmate-cli/)
 [![License](https://img.shields.io/badge/license-GPL--3.0-yellow?style=for-the-badge)](LICENSE)
-[![Beta](https://img.shields.io/badge/status-beta-orange?style=for-the-badge)]()
 [![Maintained](https://img.shields.io/badge/Maintained-Yes-green?style=for-the-badge)]()
 
 </div>
 
-> [INFO]
-> **Beta Software**: This project is in active development. While functional, some features may be incomplete or change between versions. please report any issues on GitHub.
+## Why TuxMate CLI?
 
-## The CLI-Mate you need for your linux setup
+Setting up a fresh Linux install means hunting through package managers, PPAs, Flatpak, Snap, and AUR. **TuxMate CLI simplifies this** with a curated database of 150+ popular applications that work across distros.
 
-A command-line interface for installing Linux packages using [tuxmate's](https://github.com/abusoww/tuxmate) curated package database. Perfect for setting up a fresh Linux system or bulk-installing your favorite apps.
-
-## Features
+**One command. Multiple distros. No hassle.**
 
 ```bash
-# List and search packages
-tuxmate-cli list
-tuxmate-cli search firefox
-
-# Install packages directly
-tuxmate-cli install firefox neovim git
-
-# Generate install scripts
-tuxmate-cli oneliner vscode spotify
+# Works on Ubuntu, Debian, Arch, Fedora, openSUSE, Nix
+tuxmate-cli install firefox vscode spotify discord
 ```
 
-- **150+ curated packages** across browsers, dev tools, terminals, media, and more
-- **Multi-distro support** - Ubuntu, Debian, Arch (AUR), Fedora, openSUSE, Nix, Flatpak, Snap
-- **Smart script generation** - Distro-specific scripts with error handling
-- **Always updated** - Syncs with tuxmate's latest package data
+**Perfect for:**
+- Fresh Linux installations
+- Distro hopping (same apps, different distro)
+- Sharing your setup with others
+- Automated system provisioning
 
-See [Usage](#usage) section below for detailed commands.
+Built on [tuxmate's](https://github.com/abusoww/tuxmate) curated package database with smart fallbacks to Flatpak/Snap when native packages aren't available.
+
+## Quick Start
+
+```bash
+# Install
+pip install tuxmate-cli
+
+# Search for packages
+tuxmate-cli search browser
+
+# Install your favorites
+tuxmate-cli install firefox brave chromium
+
+# Generate a setup script
+tuxmate-cli script firefox neovim git docker > setup.sh
+```
+
+## Key Features
+
+- **150+ curated packages** - Browsers, dev tools, terminals, media apps, and more
+- **Multi-distro support** - Ubuntu, Debian, Arch (AUR), Fedora, openSUSE, Nix
+- **Smart fallbacks** - Auto-fallback to Flatpak/Snap when native packages unavailable
+- **Already-installed detection** - Skips packages already on your system
+- **Script generation** - Create reusable install scripts for team sharing
+- **Secure by default** - Root prevention, input validation, proper escaping
+
+## Real-World Examples
+
+## Real-World Examples
+
+### Fresh Ubuntu Install
+```bash
+# Developer setup
+tuxmate-cli install vscode git docker nodejs python3
+
+# Browser collection
+tuxmate-cli install firefox brave chromium
+
+# Media & communication
+tuxmate-cli install vlc spotify discord slack --flatpak
+```
+
+### Arch Linux Setup
+```bash
+# AUR packages detected automatically
+tuxmate-cli install visual-studio-code-bin spotify brave-bin
+
+# Generate script for later
+tuxmate-cli script neovim tmux zsh > dotfiles-setup.sh
+```
+
+### Share Your Setup
+```bash
+# Create a setup script anyone can run
+tuxmate-cli script firefox vscode git docker neovim -o my-setup.sh
+
+# Others run it on their distro
+bash my-setup.sh  # Works on any supported distro
+```
 
 ## Installation
 
