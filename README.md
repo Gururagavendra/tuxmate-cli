@@ -205,7 +205,7 @@ See [docs/TEST_PLAN.md](docs/TEST_PLAN.md) and [docs/PYTHON_IMPLEMENTATION.md](d
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before submitting a Pull Request.
 
 ## License
 
