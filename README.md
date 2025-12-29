@@ -41,15 +41,6 @@ See [Usage](#usage) section below for detailed commands.
 pip install tuxmate-cli --upgrade
 ```
 
-## Development
-
-```bash
-git clone https://github.com/Gururagavendra/tuxmate-cli.git
-cd tuxmate-cli
-uv sync
-uv run tuxmate-cli --help
-```
-
 ## Usage
 
 ### List available packages
@@ -116,15 +107,27 @@ tuxmate-cli categories
 tuxmate-cli distros
 ```
 
+## Development
+
+```bash
+git clone https://github.com/Gururagavendra/tuxmate-cli.git
+cd tuxmate-cli
+uv sync
+uv run tuxmate-cli --help
+```
+
+
 For technical details, see [ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 
 ## Supported Distributions & Packages
 
 For the complete list of supported distributions and package catalog, visit [tuxmate.com](https://tuxmate.com/)
 
-## Integration with TuxSync
+## Future Integration
 
-tuxmate-cli is designed to work seamlessly with [TuxSync](https://github.com/Gururagavendra/tuxsync) for profile syncing:
+tuxmate-cli is designed to integrate with **TuxSync** (coming soon),
+a profile sync tool for Linux configurations. TuxSync will use tuxmate-cli
+to restore your application list across machines.
 
 ```bash
 # TuxSync uses tuxmate-cli for package restoration
